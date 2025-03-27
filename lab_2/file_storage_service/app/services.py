@@ -2,7 +2,7 @@ import os
 import json
 from fastapi import UploadFile, HTTPException
 from datetime import datetime, timezone
-from app.database import load_data, save_data
+from app.database import load_db, save_db
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -14,7 +14,7 @@ async def upload_file(file: UploadFile, user: dict, uploaded_by: str = None):
     with open(file_path, "wb") as buffer:
         buffer.write(await file.read())
     
-    data = load_data()
+    data = load_db()
     file_id = max([f["id"] for f in data.get("files", [])], default=0) + 1
     file_data = {
         "id": file_id,
@@ -23,11 +23,11 @@ async def upload_file(file: UploadFile, user: dict, uploaded_by: str = None):
         "upload_time": datetime.now(timezone.utc).isoformat(),
     }
     data["files"].append(file_data)
-    save_data(data)
+    save_db(data)
     return {"message": "File uploaded successfully", "file": file_data}
 
 async def delete_file(filename: str, user: dict):
-    data = load_data()
+    data = load_db()
     files = data.get("files", [])
     file_to_delete = next((f for f in files if f["filename"] == filename), None)
     
@@ -42,5 +42,5 @@ async def delete_file(filename: str, user: dict):
         os.remove(file_path)
     
     data["files"] = [f for f in files if f["filename"] != filename]
-    save_data(data)
+    save_db(data)
     return {"message": "File deleted successfully"}

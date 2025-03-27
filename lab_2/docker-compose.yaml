@@ -15,7 +15,7 @@ services:
 
   file_service:
     build:
-      context: ./file_service  # Путь к директории с сервисом
+      context: ./file_storage_service  # Путь к директории с сервисом
     container_name: file_service
     ports:
       - "8002:8000"  # Внешний порт 8002, внутренний 8000
