@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  user_api_service:
+    build:
+      context: ./user_api_service  # Путь к директории с сервисом
+    container_name: user_api_service
+    ports:
+      - "8001:8000"  # Внешний порт 8001, внутренний 8000
+    environment:
+      - SECRET_KEY=mysecret
+    restart: always
+    networks:
+      - app_network
+
+  file_service:
+    build:
+      context: ./file_service  # Путь к директории с сервисом
+    container_name: file_service
+    ports:
+      - "8002:8000"  # Внешний порт 8002, внутренний 8000
+    environment:
+      - SECRET_KEY=mysecret
+      - USER_API_URL=http://user_api_service:8000  # Адрес user_api_service
+    depends_on:
+      - user_api_service
+    restart: always
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
