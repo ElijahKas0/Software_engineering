@@ -12,10 +12,6 @@ async def upload(
 ):
     return await upload_file(file, user, uploaded_by)
 
-# @app.get("/files/{filename}")
-# async def get_file_route(filename: str, user: dict = Depends(get_current_user)):
-#     # return await get_file(filename)
-
 @app.delete("/files/{filename}")
 async def delete_file_route(filename: str, user: dict = Depends(get_current_user)):
     return await delete_file(filename, user)

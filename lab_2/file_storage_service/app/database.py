@@ -1,7 +1,7 @@
 import json
 import os
 
-DB_FILE = "database.json"
+DB_FILE = "Storage_DB.json"
 
 # Инициализация базы данных, если файл отсутствует
 if not os.path.exists(DB_FILE):
