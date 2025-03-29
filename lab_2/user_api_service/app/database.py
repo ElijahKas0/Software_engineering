@@ -1,7 +1,7 @@
 import json
 import os
 from passlib.context import CryptContext
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import jwt
 
 # Файл для хранения пользователей
@@ -71,6 +71,6 @@ def verify_password(plain_password, hashed_password):
 
 # Функция создания токена доступа
 def create_access_token(username: str):
-    """Создаёт JWT-токен для пользователя."""
-    payload = {"sub": username, "exp": datetime.now(timezone.utc).isoformat()}
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    expire = datetime.now(timezone.utc) + timedelta(hours=1)
+    payload = {"sub": username, "exp": int(expire.timestamp())}  # ✅ Правильный формат
+    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
