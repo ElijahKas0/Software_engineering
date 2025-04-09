@@ -2,6 +2,7 @@
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from app import models
+from app.models import UserResponse
 
 # Настройка хеширования
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -33,5 +34,7 @@ def create_user(db: Session, username: str, password: str, full_name: str):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return db_user
+    
+    # Возвращаем объект, совместимый с UserResponse
+    return UserResponse(username=db_user.username, full_name=db_user.full_name, role=db_user.role)
 
