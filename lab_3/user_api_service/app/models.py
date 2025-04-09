@@ -2,8 +2,7 @@
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.orm import declarative_base
 from datetime import datetime, timezone
-from pydantic import BaseModel
-
+from pydantic import BaseModel, validator  # ← добавили validator
 from app.database import Base
 
 # SQLAlchemy-модель таблицы users
@@ -21,6 +20,12 @@ class UserCreate(BaseModel):
     username: str
     password: str
     full_name: str
+
+    @validator("password")
+    def password_length(cls, value):
+        if len(value) < 6:
+            raise ValueError("Password must be at least 6 characters long")
+        return value
 
 class UserResponse(BaseModel):
     username: str

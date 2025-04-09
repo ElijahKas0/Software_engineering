@@ -27,9 +27,6 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     return UserResponse(username=result.username, full_name=result.full_name, role=result.role)
 
 @router.get("/users/me", response_model=UserResponse, tags=["Users"])
-async def get_me(user: dict = Depends(get_current_user)):
-    return UserResponse(
-        username=user["username"],
-        full_name=user["full_name"],
-        role=user["role"]
-    )
+async def get_me(user = Depends(get_current_user)):
+    return user  
+
