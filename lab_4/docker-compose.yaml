@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  # Сервис пользователей
+  user_api_service:
+    build:
+      context: ./user_api_service_db
+    container_name: user_api_service_db
+    ports:
+      - "8001:8000"
+    environment:
+      - SECRET_KEY=mysecret
+      - DATABASE_URL=postgresql://user:password@db_user:5432/user_db
+    depends_on:
+      - db_user
+    restart: always
+    networks:
+      - app_network
+
+  # База данных пользователей
+  db_user:
+    image: postgres:14
+    platform: linux/amd64
+    container_name: db_user
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: user_db
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  # 🆕 MongoDB
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app_network
+
+  # 🆕 File Storage Service
+  file_storage_service:
+    build:
+      context: ./file_storage_service
+    container_name: file_storage_service
+    ports:
+      - "8002:8000"
+    environment:
+      - SECRET_KEY=mysecret
+      - MONGO_URL=mongodb://mongo:27017/
+    depends_on:
+      - mongo
+    restart: always
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  user_db_data:
+  mongo_data:
