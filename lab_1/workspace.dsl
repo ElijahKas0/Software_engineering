@@ -1,4 +1,4 @@
-workspace {
+workspace { 
     name "File Storage System"
     !identifiers hierarchical
 
@@ -10,14 +10,14 @@ workspace {
         fileStorageSystem = softwareSystem "Система хранения файлов" {
             description "Облачное хранилище для управления файлами и папками"
 
-            authService = container "Auth Service" {
+            userApiService = container "User API Service" {
                 technology "Python / FastAPI"
                 description "Сервис аутентификации и управления пользователями"
             }
 
-            fileService = container "File Service" {
+            fileStorageService = container "File Storage Service" {
                 technology "Python / FastAPI"
-                description "Сервис управления файлами"
+                description "Сервис управления файлами, валидации прав и обработки загрузок"
             }
 
             folderService = container "Folder Service" {
@@ -27,41 +27,31 @@ workspace {
 
             userDatabase = container "User Database" {
                 technology "PostgreSQL"
-                description "База данных пользователей"
+                description "База данных пользователей (PostgreSQL)"
             }
 
             fileDatabase = container "File Database" {
                 technology "MongoDB"
-                description "База данных файлов"
+                description "База данных файлов (MongoDB)"
             }
 
             folderDatabase = container "Folder Database" {
                 technology "MongoDB"
-                description "База данных папок"
+                description "База данных папок (MongoDB)"
             }
 
             // Взаимодействие
-            user -> authService "Регистрация и аутентификация" "REST"
-            authService -> userDatabase "Сохраняет и получает данные о пользователях" "JDBC"
-            user -> authService "Поиск пользователя по логину" "REST"
-            authService -> userDatabase "Находит пользователя по логину" "JDBC"
-            user -> authService "Поиск пользователя по имени и фамилии" "REST"
-            authService -> userDatabase "Находит пользователя по имени и фамилии" "JDBC"
+            user -> userApiService "Регистрация и аутентификация" "REST"
+            user -> userApiService "Поиск пользователя по логину/имени" "REST"
+            userApiService -> userDatabase "Чтение и запись данных" "JDBC"
 
-            user -> folderService "Создает папки" "REST"
-            folderService -> folderDatabase "Сохраняет информацию о папках" "MongoDB"
-            user -> folderService "Получает список папок" "REST"
-            folderService -> folderDatabase "Читает список папок" "MongoDB"
+            user -> folderService "Создает/удаляет папки" "REST"
+            folderService -> folderDatabase "Работает с информацией о папках" "MongoDB"
 
-            user -> fileService "Загружает файл" "REST"
-            fileService -> fileDatabase "Сохраняет информацию о файлах" "MongoDB"
-            user -> fileService "Получает файл по имени" "REST"
-            fileService -> fileDatabase "Читает файл по имени" "MongoDB"
+            user -> fileStorageService "Загружает/удаляет файлы" "REST"
+            fileStorageService -> fileDatabase "Хранит метаданные файлов" "MongoDB"
 
-            user -> fileService "Удаляет файл" "REST"
-            fileService -> fileDatabase "Удаляет информацию о файле" "MongoDB"
-            user -> folderService "Удаляет папку" "REST"
-            folderService -> folderDatabase "Удаляет информацию о папке" "MongoDB"
+            fileStorageService -> fileDatabase "Проверяет права и владельца" "MongoDB"
         }
     }
 
@@ -80,44 +70,53 @@ workspace {
 
         dynamic fileStorageSystem "create_user" "Создание нового пользователя" {
             autoLayout lr
-            user -> fileStorageSystem.authService "Отправляет запрос на создание пользователя"
-            fileStorageSystem.authService -> fileStorageSystem.userDatabase "Сохраняет данные"
-            fileStorageSystem.authService -> user "Подтверждает регистрацию"
+            user -> fileStorageSystem.userApiService "Отправляет запрос на создание пользователя"
+            fileStorageSystem.userApiService -> fileStorageSystem.userDatabase "Сохраняет данные"
+            fileStorageSystem.userApiService -> user "Подтверждает регистрацию"
         }
 
-        dynamic fileStorageSystem "search_user_by_login" "Поиск пользователя по логину" {
+        dynamic fileStorageSystem "search_user" "Поиск пользователя" {
             autoLayout lr
-            user -> fileStorageSystem.authService "Запрашивает поиск по логину"
-            fileStorageSystem.authService -> fileStorageSystem.userDatabase "Получает данные пользователя"
-            fileStorageSystem.authService -> user "Отправляет данные"
+            user -> fileStorageSystem.userApiService "Отправляет запрос на поиск"
+            fileStorageSystem.userApiService -> fileStorageSystem.userDatabase "Читает данные"
+            fileStorageSystem.userApiService -> user "Отправляет результат"
         }
 
-        dynamic fileStorageSystem "search_user_by_name" "Поиск пользователя по имени и фамилии" {
+        dynamic fileStorageSystem "upload_file" "Загрузка файла пользователем" {
             autoLayout lr
-            user -> fileStorageSystem.authService "Запрашивает поиск по имени и фамилии"
-            fileStorageSystem.authService -> fileStorageSystem.userDatabase "Получает данные пользователя"
-            fileStorageSystem.authService -> user "Отправляет данные"
+            user -> fileStorageSystem.fileStorageService "Отправляет файл"
+            fileStorageSystem.fileStorageService -> fileStorageSystem.fileDatabase "Сохраняет метаданные"
+            fileStorageSystem.fileStorageService -> user "Подтверждает загрузку"
+        }
+
+        dynamic fileStorageSystem "delete_own_file" "Удаление собственного файла" {
+            autoLayout lr
+            user -> fileStorageSystem.fileStorageService "Запрашивает удаление"
+            fileStorageSystem.fileStorageService -> fileStorageSystem.fileDatabase "Проверяет владельца"
+            fileStorageSystem.fileStorageService -> fileStorageSystem.fileDatabase "Удаляет файл"
+            fileStorageSystem.fileStorageService -> user "Подтверждает удаление"
+        }
+
+        dynamic fileStorageSystem "admin_delete_other_file" "Удаление чужого файла админом" {
+            autoLayout lr
+            user -> fileStorageSystem.fileStorageService "Админ отправляет запрос"
+            fileStorageSystem.fileStorageService -> fileStorageSystem.fileDatabase "Находит файл"
+            fileStorageSystem.fileStorageService -> fileStorageSystem.fileDatabase "Удаляет файл"
+            fileStorageSystem.fileStorageService -> user "Подтверждает удаление"
         }
 
         dynamic fileStorageSystem "create_folder" "Создание новой папки" {
             autoLayout lr
-            user -> fileStorageSystem.folderService "Запрашивает создание папки"
-            fileStorageSystem.folderService -> fileStorageSystem.folderDatabase "Сохраняет данные о папке"
-            fileStorageSystem.folderService -> user "Подтверждает создание папки"
+            user -> fileStorageSystem.folderService "Запрашивает создание"
+            fileStorageSystem.folderService -> fileStorageSystem.folderDatabase "Сохраняет информацию"
+            fileStorageSystem.folderService -> user "Подтверждает создание"
         }
 
         dynamic fileStorageSystem "get_folders" "Получение списка папок" {
             autoLayout lr
-            user -> fileStorageSystem.folderService "Запрашивает список папок"
-            fileStorageSystem.folderService -> fileStorageSystem.folderDatabase "Получает список папок"
-            fileStorageSystem.folderService -> user "Возвращает список папок"
-        }
-
-        dynamic fileStorageSystem "upload_file" "Загрузка файла" {
-            autoLayout lr
-            user -> fileStorageSystem.fileService "Отправляет файл на сервер"
-            fileStorageSystem.fileService -> fileStorageSystem.fileDatabase "Сохраняет метаданные файла"
-            fileStorageSystem.fileService -> user "Подтверждает загрузку файла"
+            user -> fileStorageSystem.folderService "Запрашивает список"
+            fileStorageSystem.folderService -> fileStorageSystem.folderDatabase "Читает из БД"
+            fileStorageSystem.folderService -> user "Возвращает список"
         }
     }
 }
